@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080c0e">
+  <meta name="description" content="Fogforge is a standalone top-down map editor for Dead by Daylight trial grounds. Draw structures with CAD-style tools, stamp editable presets, and export clean maps.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Fogforge">
+  <title>Fogforge — Dead by Daylight Trial Grounds Editor</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="styles.css?v=1.1.0">
+</head>
+<body>
+  <svg class="svg-sprite" aria-hidden="true">
+    <symbol id="i-cursor" viewBox="0 0 24 24"><path d="m5 3 14 8.5-6.2 1.6L9.4 20 5 3Z"/></symbol>
+    <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8.5 12V5.8a1.3 1.3 0 0 1 2.6 0v5.4-6.8a1.3 1.3 0 0 1 2.6 0v6.8-5.6a1.3 1.3 0 0 1 2.6 0v6.6-3.9a1.3 1.3 0 0 1 2.6 0v6.2c0 4-2.5 6.4-6.3 6.4-2.4 0-4.1-.9-5.4-2.7L5 15.4a1.4 1.4 0 0 1 2.2-1.7l1.3 1.5"/></symbol>
+    <symbol id="i-line" viewBox="0 0 24 24"><path d="M4 20 20 4"/><circle cx="4" cy="20" r="1.5"/><circle cx="20" cy="4" r="1.5"/></symbol>
+    <symbol id="i-polyline" viewBox="0 0 24 24"><path d="m3 18 5-9 5 5 8-9"/><circle cx="3" cy="18" r="1.5"/><circle cx="8" cy="9" r="1.5"/><circle cx="13" cy="14" r="1.5"/><circle cx="21" cy="5" r="1.5"/></symbol>
+    <symbol id="i-rect" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14"/><path d="M3.5 5h3M17.5 5h3M3.5 19h3M17.5 19h3"/></symbol>
+    <symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2"/></symbol>
+    <symbol id="i-ellipse" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="6"/><path d="M12 6v12M3 12h18" opacity=".35"/></symbol>
+    <symbol id="i-polygon" viewBox="0 0 24 24"><path d="m12 3 8 5.5-3 9.5H7L4 8.5 12 3Z"/><circle cx="12" cy="12" r="1.5"/></symbol>
+    <symbol id="i-arc" viewBox="0 0 24 24"><path d="M4 18c1-8 6-13 16-14"/><circle cx="4" cy="18" r="1.5"/><circle cx="20" cy="4" r="1.5"/><path d="M8 6.5c3.2 1.2 5.5 3.6 6.5 6.5" opacity=".4"/></symbol>
+    <symbol id="i-wall" viewBox="0 0 24 24"><path d="M3 8h18v8H3zM8 8v8M14 8v8M3 12h5M11 12h6M17 12h4"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="M5 5h14M12 5v15M8.5 20h7"/></symbol>
+    <symbol id="i-marker" viewBox="0 0 24 24"><path d="M12 21s6-5.5 6-11a6 6 0 1 0-12 0c0 5.5 6 11 6 11Z"/><circle cx="12" cy="10" r="2.3"/></symbol>
+    <symbol id="i-ruler" viewBox="0 0 24 24"><path d="m4 16 12-12 4 4L8 20l-4-4Z"/><path d="m7 13 1.6 1.6M10 10l1.6 1.6M13 7l1.6 1.6"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 7 4 12l5 5"/><path d="M4 12h9a6 6 0 0 1 6 6v1"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 7 5 5-5 5"/><path d="M20 12h-9a6 6 0 0 0-6 6v1"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M4 4h13l3 3v13H4V4Z"/><path d="M8 4v6h8V4M8 20v-6h8v6"/></symbol>
+    <symbol id="i-open" viewBox="0 0 24 24"><path d="M3 8V5h7l2 2h9v3"/><path d="M3 9h19l-2.5 11H4L3 9Z"/></symbol>
+    <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5"/><path d="M5 14v6h14v-6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12"/><path d="M16 8V4H4v12h4"/></symbol>
+    <symbol id="i-group" viewBox="0 0 24 24"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/><rect x="8" y="8" width="8" height="8"/></symbol>
+    <symbol id="i-ungroup" viewBox="0 0 24 24"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/><path d="M9 9h6v6H9z" opacity=".35"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18M10.2 6c.6-.1 1.2-.2 1.8-.2 6 0 9.5 6.2 9.5 6.2a18 18 0 0 1-3.2 3.8M6.2 7.7A17.8 17.8 0 0 0 2.5 12S6 18.2 12 18.2c1.5 0 2.8-.4 4-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10"/><path d="M8 10V7a4 4 0 0 1 7.7-1.5"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m7 9 5 5 5-5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.7 2.7 0 1 1 4.3 2.3c-1.2.8-1.8 1.4-1.8 2.7M12 17.5v.1"/></symbol>
+    <symbol id="i-fit" viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M21 16v5h-5M8 21H3v-5"/><rect x="8" y="8" width="8" height="8"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></symbol>
+    <symbol id="i-magnet" viewBox="0 0 24 24"><path d="M5 4v8a7 7 0 0 0 14 0V4h-4v8a3 3 0 0 1-6 0V4H5Z"/><path d="M5 8h4M15 8h4"/></symbol>
+    <symbol id="i-ortho" viewBox="0 0 24 24"><path d="M4 20V6h14"/><path d="M4 12h8v8"/><path d="M8 6h12v8"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16"/><circle cx="8" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 2.5-2.5L20 18"/></symbol>
+    <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M19 8V3l-2 2a8 8 0 1 0 2.2 8"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></symbol>
+    <symbol id="i-align-left" viewBox="0 0 24 24"><path d="M4 3v18M8 7h11M8 12h7M8 17h9"/></symbol>
+    <symbol id="i-align-center" viewBox="0 0 24 24"><path d="M12 3v18M5 7h14M8 12h8M4 17h16"/></symbol>
+    <symbol id="i-align-right" viewBox="0 0 24 24"><path d="M20 3v18M5 7h11M9 12h7M7 17h9"/></symbol>
+    <symbol id="i-align-top" viewBox="0 0 24 24"><path d="M3 4h18M7 8v11M12 8v7M17 8v9"/></symbol>
+    <symbol id="i-align-middle" viewBox="0 0 24 24"><path d="M3 12h18M7 5v14M12 8v8M17 4v16"/></symbol>
+    <symbol id="i-align-bottom" viewBox="0 0 24 24"><path d="M3 20h18M7 5v11M12 9v7M17 7v9"/></symbol>
+    <symbol id="i-flip-h" viewBox="0 0 24 24"><path d="M12 3v18" stroke-dasharray="2 2"/><path d="M9 6 3 12l6 6V6ZM15 6l6 6-6 6V6Z"/></symbol>
+    <symbol id="i-flip-v" viewBox="0 0 24 24"><path d="M3 12h18" stroke-dasharray="2 2"/><path d="m6 9 6-6 6 6H6ZM6 15h12l-6 6-6-6Z"/></symbol>
+    <symbol id="i-pallet" viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h16M6 18h12M7 6v12M12 6v12M17 6v12"/></symbol>
+    <symbol id="i-vault" viewBox="0 0 24 24"><path d="M5 20V4h14v16M5 9h14M5 15h14"/><path d="m10 12 4-4m0 8-4-4" opacity=".45"/></symbol>
+    <symbol id="i-generator" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="1"/><path d="M8 7V4h8v3M13 10l-3 5h4l-3 4"/><circle cx="7" cy="16" r="1"/><circle cx="17" cy="10" r="1"/></symbol>
+    <symbol id="i-hook" viewBox="0 0 24 24"><path d="M7 3v11a5 5 0 0 0 10 0v-2"/><path d="m14 12 3 3 3-3M7 3h5"/></symbol>
+    <symbol id="i-totem" viewBox="0 0 24 24"><path d="m12 3 7 5-3 9H8L5 8l7-5Z"/><path d="M9 9h.1M15 9h.1M9 13h6M10 17v3M14 17v3"/></symbol>
+    <symbol id="i-chest" viewBox="0 0 24 24"><path d="M3 10h18v10H3zM3 10l3-5h12l3 5M3 14h18M12 13v4"/></symbol>
+    <symbol id="i-hatch" viewBox="0 0 24 24"><path d="m12 3 9 9-9 9-9-9 9-9Z"/><path d="m12 7 5 5-5 5-5-5 5-5Z"/></symbol>
+    <symbol id="i-gate" viewBox="0 0 24 24"><path d="M4 21V7h16v14M4 11h16M8 7v14M16 7v14M4 17h16"/><path d="m9 14 3-3 3 3" opacity=".45"/></symbol>
+    <symbol id="i-basement" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM8 8h8v8H8zM8 16l8-8M8 12l4-4M12 16l4-4"/></symbol>
+    <symbol id="i-stairs" viewBox="0 0 24 24"><path d="M3 20h4v-4h4v-4h4V8h4V4h2"/><path d="M3 20v-3M7 16v-3M11 12V9M15 8V5"/></symbol>
+    <symbol id="i-locker" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18"/><path d="M6 8h12M6 16h12M10.5 11.5h.1M10.5 13.5h.1"/></symbol>
+    <symbol id="i-exit" viewBox="0 0 24 24"><path d="M14 4h6v16h-6M4 12h11M11 8l4 4-4 4"/></symbol>
+    <symbol id="i-entity" viewBox="0 0 48 48"><path d="M24 2 44 13v22L24 46 4 35V13L24 2Z" opacity=".5"/><path d="M16 14v20M24 10v28M32 14v20" stroke-width="2.5"/><path d="m12 23 12-13 12 13-12 13-12-13Z" opacity=".28"/></symbol>
+  </svg>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark"><svg><use href="#i-entity"></use></svg></div>
+        <div class="brand-type">
+          <div class="brand-name">FOGFORGE</div>
+          <div class="brand-sub">TRIAL GROUNDS CARTOGRAPHER</div>
+        </div>
+      </div>
+
+      <div class="doc-block">
+        <div class="doc-eyebrow"><span class="live-dot"></span> <span id="realmLabel">MACMILLAN ESTATE</span> <span class="slash">/</span> <span>SURVEY SHEET</span></div>
+        <button class="doc-title" id="docTitle" title="Click to rename map">Untitled Trial Grounds</button>
+        <div class="save-state" id="saveState"><span class="save-pip"></span><span id="saveLabel">SAVED LOCALLY</span></div>
+      </div>
+
+      <div class="top-actions">
+        <div class="history-group">
+          <button class="icon-btn" id="undoBtn" data-tip="Undo (Ctrl+Z)" disabled><svg><use href="#i-undo"></use></svg></button>
+          <button class="icon-btn" id="redoBtn" data-tip="Redo (Ctrl+Shift+Z)" disabled><svg><use href="#i-redo"></use></svg></button>
+        </div>
+        <div class="top-sep"></div>
+        <button class="top-btn ghost" id="newBtn"><svg><use href="#i-plus"></use></svg><span>NEW</span></button>
+        <button class="top-btn ghost" id="openBtn"><svg><use href="#i-open"></use></svg><span>OPEN</span></button>
+        <div class="menu-wrap">
+          <button class="top-btn primary" id="exportBtn"><svg><use href="#i-export"></use></svg><span>EXPORT</span><svg class="chev"><use href="#i-chevron"></use></svg></button>
+          <div class="menu" id="exportMenu">
+            <button data-export="png"><span>Blueprint PNG</span><small>High-resolution image</small></button>
+            <button data-export="svg"><span>Vector SVG</span><small>Editable line art</small></button>
+            <button data-export="json"><span>Map JSON</span><small>Re-open in Fogforge</small></button>
+            <div class="menu-rule"></div>
+            <button data-export="import"><span>Import map…</span><small>Open a .dbdmap.json file</small></button>
+          </div>
+        </div>
+        <button class="icon-btn help-btn" id="helpBtn" data-tip="Shortcuts & help"><svg><use href="#i-help"></use></svg></button>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside class="toolrail" aria-label="Drawing tools">
+        <div class="rail-block">
+          <span class="rail-label">NAV</span>
+          <button class="tool-btn" data-tool="select" data-tip="Select / move — V"><span class="key">V</span><svg><use href="#i-cursor"></use></svg></button>
+          <button class="tool-btn" data-tool="pan" data-tip="Pan canvas — H or hold Space"><span class="key">H</span><svg><use href="#i-hand"></use></svg></button>
+        </div>
+        <div class="rail-block">
+          <span class="rail-label">DRAW</span>
+          <button class="tool-btn" data-tool="line" data-tip="Line — L"><span class="key">L</span><svg><use href="#i-line"></use></svg></button>
+          <button class="tool-btn" data-tool="polyline" data-tip="Polyline — P"><span class="key">P</span><svg><use href="#i-polyline"></use></svg></button>
+          <button class="tool-btn" data-tool="rect" data-tip="Rectangle — R"><span class="key">R</span><svg><use href="#i-rect"></use></svg></button>
+          <button class="tool-btn" data-tool="circle" data-tip="Circle — C"><span class="key">C</span><svg><use href="#i-circle"></use></svg></button>
+          <button class="tool-btn" data-tool="ellipse" data-tip="Ellipse — E"><span class="key">E</span><svg><use href="#i-ellipse"></use></svg></button>
+          <button class="tool-btn" data-tool="polygon" data-tip="Polygon — G"><span class="key">G</span><svg><use href="#i-polygon"></use></svg></button>
+          <button class="tool-btn" data-tool="arc" data-tip="3-point arc — A"><span class="key">A</span><svg><use href="#i-arc"></use></svg></button>
+        </div>
+        <div class="rail-block">
+          <span class="rail-label">BUILD</span>
+          <button class="tool-btn" data-tool="wall" data-tip="Wall chain — W"><span class="key">W</span><svg><use href="#i-wall"></use></svg></button>
+        </div>
+        <div class="rail-block">
+          <span class="rail-label">NOTE</span>
+          <button class="tool-btn" data-tool="text" data-tip="Label text — T"><span class="key">T</span><svg><use href="#i-text"></use></svg></button>
+          <button class="tool-btn" data-tool="marker" data-tip="Place prop marker — M"><span class="key">M</span><svg><use href="#i-marker"></use></svg></button>
+          <button class="tool-btn" data-tool="measure" data-tip="Measure distance — U"><span class="key">U</span><svg><use href="#i-ruler"></use></svg></button>
+        </div>
+        <div class="rail-spacer"></div>
+        <button class="tool-btn subtle" id="fitBtn" data-tip="Fit map to view — F"><svg><use href="#i-fit"></use></svg></button>
+      </aside>
+
+      <aside class="leftdock">
+        <section class="tool-panel" id="toolPanel">
+          <div class="panel-kicker">ACTIVE TOOL <span id="toolShortcut">V</span></div>
+          <div class="tool-title-row">
+            <span class="tool-title-icon"><svg id="toolIcon"><use href="#i-cursor"></use></svg></span>
+            <div>
+              <h2 id="toolName">Select</h2>
+              <p id="toolDesc">Pick, move and refine objects on the blueprint.</p>
+            </div>
+          </div>
+          <div class="tool-options" id="toolOptions"></div>
+          <div class="snap-row">
+            <button class="snap-pill is-on" id="gridSnapBtn" data-tip="Snap to grid"><svg><use href="#i-grid"></use></svg><span>GRID</span></button>
+            <button class="snap-pill is-on" id="geomSnapBtn" data-tip="Snap to points and edges"><svg><use href="#i-magnet"></use></svg><span>POINTS</span></button>
+            <button class="snap-pill" id="orthoBtn" data-tip="Lock drawing to 0° / 90°"><svg><use href="#i-ortho"></use></svg><span>ORTHO</span></button>
+          </div>
+        </section>
+
+        <section class="library">
+          <div class="lib-tabs" role="tablist">
+            <button class="lib-tab active" data-tab="presets" role="tab"><span>PRESETS</span><span class="tab-count">8</span></button>
+            <button class="lib-tab" data-tab="props" role="tab"><span>PROPS</span></button>
+            <button class="lib-tab" data-tab="layers" role="tab"><span>LAYERS</span></button>
+          </div>
+
+          <div class="lib-panel active" id="tab-presets">
+            <div class="preset-head">
+              <div>
+                <h3>STRUCTURE LIBRARY</h3>
+                <p>Drop a landmark into the current view.</p>
+              </div>
+              <span class="section-mark">01</span>
+            </div>
+            <div class="filter-row" id="presetFilters">
+              <button class="filter active" data-filter="all">ALL</button>
+              <button class="filter" data-filter="building">BUILDINGS</button>
+              <button class="filter" data-filter="loop">LOOPS</button>
+              <button class="filter" data-filter="utility">UTILITY</button>
+            </div>
+            <div class="preset-grid" id="presetGrid"></div>
+            <div class="lib-note"><svg><use href="#i-cursor"></use></svg><span>Everything inserted is fully editable. Alt-click selects a single piece inside a preset.</span></div>
+          </div>
+
+          <div class="lib-panel" id="tab-props">
+            <div class="preset-head">
+              <div>
+                <h3>TRIAL PROPS</h3>
+                <p>Select a symbol, then click the map to stamp it.</p>
+              </div>
+              <span class="section-mark">02</span>
+            </div>
+            <div class="prop-grid" id="propGrid"></div>
+            <div class="prop-detail" id="propDetail">
+              <span class="prop-detail-icon"><svg><use href="#i-pallet"></use></svg></span>
+              <div><strong>Pallet</strong><p>Hold Shift while placing to keep the last rotation.</p></div>
+            </div>
+            <div class="lib-note"><svg><use href="#i-marker"></use></svg><span>Markers are map notation, not auto-generated gameplay logic. Scale and rotate them in the inspector.</span></div>
+          </div>
+
+          <div class="lib-panel" id="tab-layers">
+            <div class="preset-head">
+              <div>
+                <h3>DRAWING LAYERS</h3>
+                <p>Control visibility, locking and draw order.</p>
+              </div>
+              <span class="section-mark">03</span>
+            </div>
+            <div class="layer-list" id="layerList"></div>
+            <button class="wide-btn" id="addLayerBtn"><svg><use href="#i-plus"></use></svg>ADD LAYER</button>
+            <div class="layer-legend">
+              <div><span class="legend-swatch"></span><span>ACTIVE LAYER</span></div>
+              <div><span class="legend-line"></span><span>VISIBLE / HIDDEN</span></div>
+              <div><span class="legend-lock"></span><span>LOCKED</span></div>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <main class="stage" id="stage">
+        <canvas id="canvas" tabindex="0" aria-label="Trial grounds map canvas"></canvas>
+
+        <div class="canvas-corner top-left">
+          <div class="coord-mode"><span class="pulse"></span><span id="modeLabel">SELECT MODE</span></div>
+          <div class="canvas-scale"><span id="zoomLabel">100%</span><span class="sep">/</span><span>1m GRID</span></div>
+        </div>
+
+        <div class="canvas-prompt" id="canvasPrompt">
+          <span class="prompt-key">V</span><span id="promptText">Click an object to inspect it. Drag to marquee-select.</span>
+        </div>
+
+        <div class="canvas-compass">
+          <div class="compass-ring"><span>N</span><svg viewBox="0 0 40 40"><path d="M20 3v12M20 25v12M3 20h12M25 20h12" opacity=".25"/><path d="M20 7 25 20 20 17 15 20 20 7Z"/></svg></div>
+          <div class="compass-meta"><span id="realmMeta">MACMILLAN</span><span id="scaleMeta">1 : 100</span></div>
+        </div>
+
+        <div class="empty-state" id="emptyState">
+          <div class="empty-sigil"><svg><use href="#i-entity"></use></svg></div>
+          <div class="empty-kicker">NO SURVEY DATA</div>
+          <h2>Start from the fog.</h2>
+          <p>Draw a trial ground from scratch, or drop in a known structure from the preset library.</p>
+          <div class="empty-actions">
+            <button id="emptyPresetBtn">BROWSE PRESETS</button>
+            <button id="emptyDrawBtn">START DRAWING</button>
+          </div>
+        </div>
+
+        <div class="commandbar" id="commandbar">
+          <span class="command-label">COMMAND</span>
+          <span class="command-caret">›</span>
+          <input id="commandInput" type="text" autocomplete="off" spellcheck="false" placeholder="Type a command or tool — LINE, WALL, PRESET SHACK, ZOOM FIT…">
+          <span class="command-hint"><kbd>CTRL</kbd><kbd>K</kbd></span>
+          <div class="command-suggest" id="commandSuggest"></div>
+        </div>
+
+        <footer class="statusbar">
+          <div class="status-left">
+            <span class="coord"><span>X</span><b id="coordX">0.00</b><span>Y</span><b id="coordY">0.00</b><em>m</em></span>
+            <span class="status-divider"></span>
+            <span id="selectionStatus">NO SELECTION</span>
+            <span class="status-divider"></span>
+            <span id="snapStatus" class="snap-status">SNAP: GRID + POINTS</span>
+          </div>
+          <div class="status-right">
+            <button class="status-toggle is-on" id="statusGridBtn"><svg><use href="#i-grid"></use></svg>GRID</button>
+            <button class="status-toggle is-on" id="statusSnapBtn"><svg><use href="#i-magnet"></use></svg>SNAP</button>
+            <span class="status-divider"></span>
+            <button class="zoom-btn" id="zoomOutBtn" aria-label="Zoom out">−</button>
+            <button class="zoom-readout" id="zoomFitBtn">100%</button>
+            <button class="zoom-btn" id="zoomInBtn" aria-label="Zoom in">+</button>
+            <span class="status-divider"></span>
+            <span class="engine-status"><span></span>EDITOR READY</span>
+          </div>
+        </footer>
+      </main>
+
+      <aside class="inspector">
+        <div class="inspector-head">
+          <div><span class="panel-kicker">INSPECTOR</span><h2 id="inspectorTitle">Map settings</h2></div>
+          <span class="inspector-badge" id="inspectorBadge">SHEET</span>
+        </div>
+        <div class="inspector-body" id="inspectorBody"></div>
+      </aside>
+    </div>
+  </div>
+
+  <dialog class="modal text-modal" id="textDialog">
+    <form method="dialog" id="textForm">
+      <div class="modal-kicker">ANNOTATION</div>
+      <h2>Add a map label</h2>
+      <p>Keep it short. Labels use the annotation layer and can be rotated later.</p>
+      <label class="field-label" for="textInput">LABEL TEXT</label>
+      <textarea id="textInput" rows="3" maxlength="160" placeholder="e.g. BASEMENT STAIRS"></textarea>
+      <div class="modal-actions">
+        <button value="cancel" class="modal-btn ghost">CANCEL</button>
+        <button value="default" class="modal-btn primary" id="textSubmit">PLACE LABEL</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal help-modal" id="helpDialog">
+    <div class="help-head">
+      <div><div class="modal-kicker">FIELD MANUAL</div><h2>Working the survey</h2></div>
+      <button class="icon-btn" id="helpClose"><svg><use href="#i-x"></use></svg></button>
+    </div>
+    <div class="help-grid">
+      <section>
+        <h3>CAD CONTROLS</h3>
+        <div class="shortcut-row"><span>Select / move</span><kbd>V</kbd></div>
+        <div class="shortcut-row"><span>Line (chain)</span><kbd>L</kbd></div>
+        <div class="shortcut-row"><span>Polyline</span><kbd>P</kbd></div>
+        <div class="shortcut-row"><span>Rectangle</span><kbd>R</kbd></div>
+        <div class="shortcut-row"><span>Circle / ellipse</span><kbd>C</kbd><kbd>E</kbd></div>
+        <div class="shortcut-row"><span>Polygon / arc</span><kbd>G</kbd><kbd>A</kbd></div>
+        <div class="shortcut-row"><span>Wall chain</span><kbd>W</kbd></div>
+        <div class="shortcut-row"><span>Label / marker</span><kbd>T</kbd><kbd>M</kbd></div>
+        <div class="shortcut-row"><span>Measure</span><kbd>U</kbd></div>
+        <div class="shortcut-row"><span>Pan canvas</span><kbd>SPACE</kbd></div>
+      </section>
+      <section>
+        <h3>PRECISION</h3>
+        <div class="shortcut-row"><span>Grid snap</span><kbd>SHIFT</kbd><kbd>G</kbd></div>
+        <div class="shortcut-row"><span>Point snap</span><kbd>SHIFT</kbd><kbd>P</kbd></div>
+        <div class="shortcut-row"><span>Ortho toggle</span><kbd>SHIFT</kbd><kbd>O</kbd></div>
+        <div class="shortcut-row"><span>Hold for ortho</span><kbd>SHIFT</kbd><span class="dim">while drawing</span></div>
+        <div class="shortcut-row"><span>Finish chain</span><kbd>ENTER</kbd></div>
+        <div class="shortcut-row"><span>Cancel / deselect</span><kbd>ESC</kbd></div>
+        <div class="shortcut-row"><span>Nudge selection</span><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></div>
+        <div class="shortcut-row"><span>Nudge ×10</span><kbd>SHIFT</kbd><span class="dim">+ arrows</span></div>
+        <div class="shortcut-row"><span>Fit to view</span><kbd>F</kbd></div>
+        <div class="shortcut-row"><span>Zoom</span><kbd>SCROLL</kbd></div>
+      </section>
+      <section>
+        <h3>EDITING</h3>
+        <div class="shortcut-row"><span>Undo / redo</span><kbd>CTRL</kbd><kbd>Z</kbd></div>
+        <div class="shortcut-row"><span>Duplicate</span><kbd>CTRL</kbd><kbd>D</kbd></div>
+        <div class="shortcut-row"><span>Group / ungroup</span><kbd>CTRL</kbd><kbd>G</kbd></div>
+        <div class="shortcut-row"><span>Delete</span><kbd>DEL</kbd></div>
+        <div class="shortcut-row"><span>Select inside group</span><kbd>ALT</kbd><span class="dim">+ click</span></div>
+        <div class="shortcut-row"><span>Multi-select</span><kbd>SHIFT</kbd><span class="dim">+ click</span></div>
+        <div class="shortcut-row"><span>Select all</span><kbd>CTRL</kbd><kbd>A</kbd></div>
+        <div class="shortcut-row"><span>Command line</span><kbd>CTRL</kbd><kbd>K</kbd></div>
+        <div class="shortcut-row"><span>Save local copy</span><kbd>CTRL</kbd><kbd>S</kbd></div>
+      </section>
+      <section class="help-tips">
+        <h3>FIELD NOTES</h3>
+        <p><strong>Draw in order.</strong> Rectangles, ellipses and circles use a two-click corner-to-corner workflow. Polygons use centre, then radius. Arcs use start, through, end.</p>
+        <p><strong>Snap like a surveyor.</strong> Point snapping grabs endpoints, corners, centres, midpoints and edges from every visible, unlocked layer. Hold <kbd>SHIFT</kbd> to constrain to ortho while drawing.</p>
+        <p><strong>Presets are groups.</strong> Click any piece to move the whole landmark. Hold <kbd>ALT</kbd> to edit one wall or prop. Use <kbd>CTRL</kbd> + <kbd>G</kbd> on arbitrary selections to group them.</p>
+        <p><strong>Exports.</strong> Blueprint PNG includes a title block. SVG is clean vector line work. JSON preserves the full editable document.</p>
+      </section>
+    </div>
+    <div class="help-footer"><span>FOGFORGE / TRIAL GROUNDS CARTOGRAPHER</span><span>v1.0</span></div>
+  </dialog>
+
+  <div class="toast-stack" id="toastStack"></div>
+  <input type="file" id="fileMapInput" accept=".json,.dbdmap.json,application/json" hidden>
+  <input type="file" id="fileImageInput" accept="image/*" hidden>
+
+  <script src="app.js?v=1.1.0"></script>
+</body>
+</html>
