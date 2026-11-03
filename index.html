@@ -7,13 +7,13 @@
   <meta name="description" content="Fogforge is a standalone top-down map editor for Dead by Daylight trial grounds. Draw structures with CAD-style tools, stamp editable presets, and export clean maps.">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Fogforge">
   <title>Fogforge — Dead by Daylight Trial Grounds Editor</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=1.1.0">
+  <link rel="stylesheet" href="styles.css?v=1.2.0">
 </head>
 <body>
   <svg class="svg-sprite" aria-hidden="true">
@@ -52,6 +52,8 @@
     <symbol id="i-magnet" viewBox="0 0 24 24"><path d="M5 4v8a7 7 0 0 0 14 0V4h-4v8a3 3 0 0 1-6 0V4H5Z"/><path d="M5 8h4M15 8h4"/></symbol>
     <symbol id="i-ortho" viewBox="0 0 24 24"><path d="M4 20V6h14"/><path d="M4 12h8v8"/><path d="M8 6h12v8"/></symbol>
     <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></symbol>
+    <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16"/><path d="M9 4v16"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h8M18 7h2M4 17h3M13 17h7"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
     <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16"/><circle cx="8" cy="9" r="1.5"/><path d="m4 17 5-5 4 4 2.5-2.5L20 18"/></symbol>
     <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M19 8V3l-2 2a8 8 0 1 0 2.2 8"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></symbol>
@@ -113,10 +115,13 @@
           </div>
         </div>
         <button class="icon-btn help-btn" id="helpBtn" data-tip="Shortcuts & help"><svg><use href="#i-help"></use></svg></button>
+        <button class="icon-btn mobile-only" id="libraryToggle" aria-label="Toggle library and tools" aria-expanded="false" aria-controls="libraryDock"><svg><use href="#i-panel"></use></svg></button>
+        <button class="icon-btn mobile-only" id="inspectorToggle" aria-label="Toggle properties inspector" aria-expanded="false" aria-controls="inspectorDock"><svg><use href="#i-sliders"></use></svg></button>
       </div>
     </header>
 
     <div class="workspace">
+      <div class="drawer-scrim" id="drawerScrim" aria-hidden="true"></div>
       <aside class="toolrail" aria-label="Drawing tools">
         <div class="rail-block">
           <span class="rail-label">NAV</span>
@@ -147,7 +152,7 @@
         <button class="tool-btn subtle" id="fitBtn" data-tip="Fit map to view — F"><svg><use href="#i-fit"></use></svg></button>
       </aside>
 
-      <aside class="leftdock">
+      <aside class="leftdock" id="libraryDock">
         <section class="tool-panel" id="toolPanel">
           <div class="panel-kicker">ACTIVE TOOL <span id="toolShortcut">V</span></div>
           <div class="tool-title-row">
@@ -282,7 +287,7 @@
         </footer>
       </main>
 
-      <aside class="inspector">
+      <aside class="inspector" id="inspectorDock">
         <div class="inspector-head">
           <div><span class="panel-kicker">INSPECTOR</span><h2 id="inspectorTitle">Map settings</h2></div>
           <span class="inspector-badge" id="inspectorBadge">SHEET</span>
@@ -358,13 +363,13 @@
         <p><strong>Exports.</strong> Blueprint PNG includes a title block. SVG is clean vector line work. JSON preserves the full editable document.</p>
       </section>
     </div>
-    <div class="help-footer"><span>FOGFORGE / TRIAL GROUNDS CARTOGRAPHER</span><span>v1.0</span></div>
+    <div class="help-footer"><span>FOGFORGE / TRIAL GROUNDS CARTOGRAPHER</span><span>v1.2</span></div>
   </dialog>
 
   <div class="toast-stack" id="toastStack"></div>
   <input type="file" id="fileMapInput" accept=".json,.dbdmap.json,application/json" hidden>
   <input type="file" id="fileImageInput" accept="image/*" hidden>
 
-  <script src="app.js?v=1.1.0"></script>
+  <script src="app.js?v=1.2.0"></script>
 </body>
 </html>

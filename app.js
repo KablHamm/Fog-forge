@@ -2398,9 +2398,14 @@
 
   // ── Viewport ─────────────────────────────────────────────────────────────
 
+  const isPhoneLayout = () => window.matchMedia('(max-width: 900px)').matches;
+
   const resizeCanvas = () => {
     const rect = stage.getBoundingClientRect();
     const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const prevW = state.view.w;
+    const prevH = state.view.h;
+    const center = prevW > 2 && prevH > 2 ? screenToWorld(prevW / 2, prevH / 2) : null;
     state.view.w = Math.max(1, rect.width);
     state.view.h = Math.max(1, rect.height);
     state.view.dpr = dpr;
@@ -2408,6 +2413,10 @@
     canvas.height = Math.max(1, Math.round(rect.height * dpr));
     canvas.style.width = `${rect.width}px`;
     canvas.style.height = `${rect.height}px`;
+    if (center) {
+      state.camera.x = state.view.w / 2 - center.x * state.camera.zoom;
+      state.camera.y = state.view.h / 2 - center.y * state.camera.zoom;
+    }
     scheduleDraw();
   };
 
@@ -2415,17 +2424,18 @@
     if (!state.doc) return;
     const { w, h } = state.view;
     if (!w || !h) return;
+    const phone = isPhoneLayout();
     const bounds = unionBounds(getVisibleEntities());
     const target = bounds || { x: 0, y: 0, w: 44, h: 32 };
     const pad = 2.5;
-    const availableW = Math.max(150, w - 110);
-    const availableH = Math.max(150, h - 170);
+    const availableW = Math.max(120, w - (phone ? 48 : 110));
+    const availableH = Math.max(120, h - (phone ? 196 : 170));
     const zoom = clamp(Math.min(availableW / (target.w + pad * 2), availableH / (target.h + pad * 2)), 2, 48);
     state.camera.zoom = zoom;
     const cx = target.x + target.w / 2;
     const cy = target.y + target.h / 2;
     state.camera.x = w / 2 - cx * zoom;
-    state.camera.y = (h - 56) / 2 - cy * zoom;
+    state.camera.y = (h - (phone ? 104 : 56)) / 2 - cy * zoom;
     updateStatus();
     scheduleDraw();
   };
@@ -4669,6 +4679,7 @@
     if (key === 'Escape') {
       closeCommandSuggest();
       $('#exportMenu').classList.remove('open');
+      if (closeDrawers()) return;
       if (cancelDrag()) return;
       if (state.draft) {
         state.draft = null;
@@ -4739,6 +4750,34 @@
     if (event.key === ' ') state.spaceDown = false;
   };
 
+  // ── Mobile drawers ───────────────────────────────────────────────────────
+
+  const closeDrawers = () => {
+    const wasOpen = document.body.classList.contains('drawer-library')
+      || document.body.classList.contains('drawer-inspector');
+    document.body.classList.remove('drawer-library', 'drawer-inspector');
+    $('#libraryToggle').classList.remove('active');
+    $('#inspectorToggle').classList.remove('active');
+    $('#libraryToggle').setAttribute('aria-expanded', 'false');
+    $('#inspectorToggle').setAttribute('aria-expanded', 'false');
+    return wasOpen;
+  };
+
+  const openDrawer = (name) => {
+    if (!isPhoneLayout()) return;
+    closeDrawers();
+    document.body.classList.add(`drawer-${name}`);
+    const button = $(name === 'library' ? '#libraryToggle' : '#inspectorToggle');
+    button.classList.add('active');
+    button.setAttribute('aria-expanded', 'true');
+  };
+
+  const toggleDrawer = (name) => {
+    if (!isPhoneLayout()) return;
+    if (document.body.classList.contains(`drawer-${name}`)) closeDrawers();
+    else openDrawer(name);
+  };
+
   const bindUI = () => {
     $$('.tool-btn[data-tool]').forEach((button) => {
       button.addEventListener('click', () => setTool(button.dataset.tool));
@@ -4750,6 +4789,12 @@
     $('#openBtn').addEventListener('click', () => $('#fileMapInput').click());
     $('#helpBtn').addEventListener('click', openHelp);
     $('#helpClose').addEventListener('click', () => $('#helpDialog').close());
+    $('#libraryToggle').addEventListener('click', () => toggleDrawer('library'));
+    $('#inspectorToggle').addEventListener('click', () => toggleDrawer('inspector'));
+    $('#drawerScrim').addEventListener('click', closeDrawers);
+    window.addEventListener('resize', () => {
+      if (!isPhoneLayout()) closeDrawers();
+    });
     $('#docTitle').addEventListener('click', () => {
       const next = window.prompt('Map name', state.doc.name);
       if (next === null) return;
@@ -4818,7 +4863,10 @@
       const card = event.target.closest('[data-preset]');
       if (!card) return;
       const preset = PRESETS.find((p) => p.id === card.dataset.preset);
-      if (preset) insertPreset(preset);
+      if (preset) {
+        insertPreset(preset);
+        closeDrawers();
+      }
     });
     $('#propGrid').addEventListener('click', (event) => {
       const card = event.target.closest('[data-marker]');
@@ -4827,6 +4875,7 @@
       setTool('marker');
       renderProps();
       renderToolOptions();
+      closeDrawers();
     });
     $('#layerList').addEventListener('click', (event) => {
       const select = event.target.closest('[data-layer-select]');
@@ -4879,6 +4928,7 @@
       $$('.lib-tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.tab === 'presets'));
       $$('.lib-panel').forEach((panel) => panel.classList.toggle('active', panel.id === 'tab-presets'));
       renderPresets('all');
+      openDrawer('library');
     });
     $('#emptyDrawBtn').addEventListener('click', () => {
       setTool('rect');

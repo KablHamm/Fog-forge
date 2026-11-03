@@ -98,6 +98,14 @@ and rotation stay editable in the inspector.
 - **`F`** — fit all geometry to the view
 - **`Space` + drag / middle-drag** — pan with any tool
 
+## On a phone
+
+The map canvas fills the screen. The drawing tools sit in a horizontal strip along the
+bottom — swipe the strip sideways to reach every tool. The two icons at the top right
+slide in the **library** (presets, props, layers) and the **inspector** (properties of the
+selected object); tap the dimmed map or press `Esc` to close them. One finger draws,
+selects, and drags objects; pinch zooms; a two-finger drag pans.
+
 ## Selection and editing
 
 - Drag inside a shape or room to move it; drag its edge to pick the wall line.
