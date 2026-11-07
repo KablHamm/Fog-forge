@@ -10,14 +10,14 @@ No build step, no dependencies, no server required. Open `index.html` and draw.
 
 - **Live web app:** <https://kablhamm.github.io/Fog-forge/> — works on desktop and
   phones, and can be installed to a home screen from the browser menu.
-- **Directly:** double-click `index.html`.
+- **Directly:** double-click `fogforge/index.html`.
 - **Local server:**
 
   ```powershell
   python -m http.server 4173
   ```
 
-  Then open <http://127.0.0.1:4173/>.
+  Then open <http://127.0.0.1:4173/fogforge/>.
 
 The app autosaves to `localStorage` under `fogforge.document.v1`. Use **OPEN** to load a
 saved `.json` map and **EXPORT** to download one.
@@ -104,7 +104,9 @@ The map canvas fills the screen. The drawing tools sit in a horizontal strip alo
 bottom — swipe the strip sideways to reach every tool. The two icons at the top right
 slide in the **library** (presets, props, layers) and the **inspector** (properties of the
 selected object); tap the dimmed map or press `Esc` to close them. One finger draws,
-selects, and drags objects; pinch zooms; a two-finger drag pans.
+selects, and drags objects; pinch zooms; a two-finger drag pans. With the **Select** tool,
+press and hold an object for about half a second to reveal a floating **DELETE** button;
+tap elsewhere, press `Esc`, or tap × to dismiss it.
 
 ## Selection and editing
 
@@ -175,6 +177,7 @@ exports.
 ## File layout
 
 ```text
+fogforge/
   index.html             App shell, panels, dialogs, and SVG icon sprite
   styles.css             Dark CAD/blueprint theme and responsive layout
   app.js                 Geometry, tools, presets, inspector, persistence, export

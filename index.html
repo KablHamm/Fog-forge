@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=1.2.0">
+  <link rel="stylesheet" href="styles.css?v=1.3.0">
 </head>
 <body>
   <svg class="svg-sprite" aria-hidden="true">
@@ -258,6 +258,11 @@
           </div>
         </div>
 
+        <div class="touch-actions" id="touchActions" hidden>
+          <button class="touch-action danger" id="touchDeleteBtn"><svg><use href="#i-trash"></use></svg><span id="touchDeleteLabel">DELETE</span></button>
+          <button class="touch-action close" id="touchCloseBtn" aria-label="Dismiss"><svg><use href="#i-x"></use></svg></button>
+        </div>
+
         <div class="commandbar" id="commandbar">
           <span class="command-label">COMMAND</span>
           <span class="command-caret">›</span>
@@ -370,6 +375,6 @@
   <input type="file" id="fileMapInput" accept=".json,.dbdmap.json,application/json" hidden>
   <input type="file" id="fileImageInput" accept="image/*" hidden>
 
-  <script src="app.js?v=1.2.0"></script>
+  <script src="app.js?v=1.3.0"></script>
 </body>
 </html>

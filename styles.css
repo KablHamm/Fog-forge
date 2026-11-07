@@ -1263,6 +1263,85 @@ svg {
 .empty-actions button:first-child { color: #e9d5c4; border-color: #5b3c2a; background: rgba(205, 118, 71, .1); }
 .empty-actions button:first-child:hover { border-color: #7b5137; background: rgba(205, 118, 71, .16); }
 
+/* ── Long-press actions ───────────────────────────────── */
+
+.touch-actions {
+  position: absolute;
+  z-index: 26;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid #3a4d50;
+  background: rgba(10, 16, 18, .97);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, .55);
+  transform: translate(-50%, -100%);
+  pointer-events: auto;
+  animation: touch-actions-in .16s ease;
+}
+
+.touch-actions[hidden] { display: none; }
+
+.touch-actions::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(45deg);
+  background: #0a1012;
+  border-right: 1px solid #3a4d50;
+  border-bottom: 1px solid #3a4d50;
+}
+
+.touch-actions.is-below { transform: translate(-50%, 0); }
+
+.touch-actions.is-below::after {
+  bottom: auto;
+  top: -6px;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 1px solid #3a4d50;
+  border-top: 1px solid #3a4d50;
+}
+
+@keyframes touch-actions-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.touch-action {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 15px;
+  border: 1px solid #33474a;
+  color: #aab5b2;
+  background: #0d1517;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.4px;
+  transition: .15s ease;
+}
+
+.touch-action svg { width: 16px; height: 16px; }
+
+.touch-action.danger {
+  color: #f2cfc6;
+  border-color: #6c3a32;
+  background: linear-gradient(180deg, #5d2f2a, #451f1c);
+}
+
+.touch-action.danger:hover,
+.touch-action.danger:active { border-color: #9a5145; background: linear-gradient(180deg, #70382f, #54261f); }
+
+.touch-action.close { width: 40px; padding: 0; justify-content: center; color: #7d8d8a; }
+.touch-action.close:hover { color: var(--text-strong); border-color: #4d6669; background: #121d20; }
+
 /* ── Command bar + status ─────────────────────────────── */
 
 .commandbar {

@@ -3245,6 +3245,62 @@
     setSelection([...ids]);
   };
 
+  // ── Long-press actions (touch) ───────────────────────────────────────────
+
+  let longPressTimer = null;
+  let longPressStart = null;
+
+  const cancelLongPress = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+    longPressStart = null;
+  };
+
+  const hideTouchActions = () => {
+    const bar = $('#touchActions');
+    if (bar && !bar.hidden) bar.hidden = true;
+  };
+
+  const showTouchActions = (screen) => {
+    const bar = $('#touchActions');
+    if (!bar) return;
+    const count = state.selection.size;
+    $('#touchDeleteLabel').textContent = count > 1 ? `DELETE ${count}` : 'DELETE';
+    bar.hidden = false;
+    bar.classList.remove('is-below');
+    const width = bar.offsetWidth;
+    const height = bar.offsetHeight;
+    const half = width / 2;
+    const margin = 10;
+    const maxX = Math.max(half + margin, state.view.w - half - margin);
+    const x = clamp(screen.x, half + margin, maxX);
+    let y = screen.y - 12;
+    const below = y - height - margin < 8;
+    if (below) y = screen.y + 18;
+    bar.style.left = `${x}px`;
+    bar.style.top = `${y}px`;
+    bar.classList.toggle('is-below', below);
+  };
+
+  const startLongPress = (event, pointer) => {
+    if (!isPhoneLayout() || event.pointerType !== 'touch' || state.tool !== 'select') return;
+    cancelLongPress();
+    longPressStart = { x: pointer.screen.x, y: pointer.screen.y, pointerId: event.pointerId };
+    longPressTimer = setTimeout(() => {
+      longPressTimer = null;
+      if (!longPressStart || !state.touchPoints.has(longPressStart.pointerId) || state.pinch) return;
+      longPressStart = null;
+      cancelDrag();
+      hideTouchActions();
+      showTouchActions(pointer.screen);
+      if (typeof navigator.vibrate === 'function') {
+        try { navigator.vibrate(25); } catch (error) { /* Optional. */ }
+      }
+    }, 520);
+  };
+
   const onPointerDown = (event) => {
     if (!state.doc) return;
     if (event.button !== 0 && event.button !== 1) return;
@@ -3258,6 +3314,7 @@
       state.touchPoints.set(event.pointerId, { x: pointer.screen.x, y: pointer.screen.y });
       if (state.touchPoints.size >= 2) {
         event.preventDefault();
+        cancelLongPress();
         if (!state.pinch) {
           cancelDrag();
           state.marquee = null;
@@ -3311,6 +3368,7 @@
         return;
       }
       beginEntityDrag(pointer, picked, event.shiftKey);
+      startLongPress(event, pointer);
       return;
     }
     if (!event.shiftKey) setSelection([]);
@@ -3327,6 +3385,11 @@
     const pointer = pointerFromEvent(event);
     state.pointerScreen = pointer.screen;
     let world = pointer.world;
+
+    if (longPressStart && event.pointerType === 'touch'
+      && Math.hypot(pointer.screen.x - longPressStart.x, pointer.screen.y - longPressStart.y) > 10) {
+      cancelLongPress();
+    }
 
     if (event.pointerType === 'touch' && state.touchPoints.has(event.pointerId)) {
       state.touchPoints.set(event.pointerId, { x: pointer.screen.x, y: pointer.screen.y });
@@ -3417,6 +3480,7 @@
   };
 
   const onPointerUp = (event) => {
+    cancelLongPress();
     try {
       if (canvas.hasPointerCapture?.(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
     } catch (error) {
@@ -3485,6 +3549,8 @@
   };
 
   const onPointerCancel = (event) => {
+    cancelLongPress();
+    hideTouchActions();
     if (event?.pointerType === 'touch') {
       state.touchPoints.delete(event.pointerId);
       if (state.touchPoints.size < 2) state.pinch = null;
@@ -4679,6 +4745,10 @@
     if (key === 'Escape') {
       closeCommandSuggest();
       $('#exportMenu').classList.remove('open');
+      if (!$('#touchActions').hidden) {
+        hideTouchActions();
+        return;
+      }
       if (closeDrawers()) return;
       if (cancelDrag()) return;
       if (state.draft) {
@@ -4765,6 +4835,7 @@
 
   const openDrawer = (name) => {
     if (!isPhoneLayout()) return;
+    hideTouchActions();
     closeDrawers();
     document.body.classList.add(`drawer-${name}`);
     const button = $(name === 'library' ? '#libraryToggle' : '#inspectorToggle');
@@ -4792,8 +4863,17 @@
     $('#libraryToggle').addEventListener('click', () => toggleDrawer('library'));
     $('#inspectorToggle').addEventListener('click', () => toggleDrawer('inspector'));
     $('#drawerScrim').addEventListener('click', closeDrawers);
+    $('#touchDeleteBtn').addEventListener('click', () => {
+      if (state.selection.size) deleteSelection();
+      hideTouchActions();
+    });
+    $('#touchCloseBtn').addEventListener('click', hideTouchActions);
+    document.addEventListener('pointerdown', (event) => {
+      if (!event.target.closest('#touchActions')) hideTouchActions();
+    }, true);
     window.addEventListener('resize', () => {
       if (!isPhoneLayout()) closeDrawers();
+      hideTouchActions();
     });
     $('#docTitle').addEventListener('click', () => {
       const next = window.prompt('Map name', state.doc.name);
@@ -5026,6 +5106,8 @@
       state.spaceDown = false;
       state.touchPoints.clear();
       state.pinch = null;
+      cancelLongPress();
+      hideTouchActions();
     });
     if (window.ResizeObserver) {
       const observer = new ResizeObserver(() => resizeCanvas());
