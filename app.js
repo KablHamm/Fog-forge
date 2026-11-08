@@ -3722,6 +3722,316 @@
     return true;
   };
 
+  // ── Traverse survey ───────────────────────────────────────────────────────
+
+  const SURVEY_MAX_SEGMENTS = 400;
+
+  const parseSurveyLength = (token) => {
+    const match = String(token).trim().match(/^([+-]?(?:\d+(?:\.\d+)?|\.\d+))m?$/i);
+    if (!match) return null;
+    const value = Number(match[1]);
+    return Number.isFinite(value) ? value : null;
+  };
+
+  const parseSurveyTurn = (token, allowBare = false) => {
+    const text = String(token).trim();
+    if (!text) return null;
+    let match = text.match(/^([RLT])([+-]?(?:\d+(?:\.\d+)?|\.\d+)?)$/i);
+    if (match) {
+      const direction = match[1].toUpperCase() === 'L' ? -1 : 1;
+      const degrees = match[2] ? Number(match[2]) : 90;
+      return Number.isFinite(degrees) ? direction * degrees : null;
+    }
+    match = text.match(/^([+-])(\d+(?:\.\d+)?|\.\d+)$/);
+    if (match) return (match[1] === '-' ? -1 : 1) * Number(match[2]);
+    if (allowBare) {
+      match = text.match(/^(\d+(?:\.\d+)?|\.\d+)$/);
+      if (match) return Number(match[1]);
+    }
+    return null;
+  };
+
+  const stripSurveyComment = (line) => line.replace(/\s*(?:#|\/\/).*$/, '').trim();
+
+  const parseSurveyCsv = (raw) => {
+    const rows = [];
+    String(raw).split(/\r?\n/).forEach((line, lineIndex) => {
+      const clean = stripSurveyComment(line);
+      if (!clean) return;
+      const cells = clean.split(',').map((cell) => cell.trim());
+      if (cells.length > 2 && cells.slice(2).some(Boolean)) {
+        rows.push({ error: `Line ${lineIndex + 1}: use one distance and one turn per line.` });
+        return;
+      }
+      const length = parseSurveyLength(cells[0]);
+      if (length === null) {
+        if (!rows.length && /distance|length|segment|turn|deg/i.test(cells[0])) return;
+        rows.push({ error: `Line ${lineIndex + 1}: “${cells[0]}” is not a distance.` });
+        return;
+      }
+      if (!(length > 0)) {
+        rows.push({ error: `Line ${lineIndex + 1}: distance must be greater than zero.` });
+        return;
+      }
+      if (length > 10000) {
+        rows.push({ error: `Line ${lineIndex + 1}: keep distances under 10,000 m.` });
+        return;
+      }
+      const turnToken = cells[1] || '';
+      const turn = turnToken ? parseSurveyTurn(turnToken, true) : null;
+      if (turnToken && turn === null) {
+        rows.push({ error: `Line ${lineIndex + 1}: “${turnToken}” is not a turn.` });
+        return;
+      }
+      if (turn !== null && Math.abs(turn) > 3600) {
+        rows.push({ error: `Line ${lineIndex + 1}: turns must stay under 3,600°.` });
+        return;
+      }
+      rows.push({ length, turn, line: lineIndex + 1 });
+    });
+    if (!rows.length) return { error: 'Enter at least one distance.' };
+    if (rows.length > SURVEY_MAX_SEGMENTS) return { error: `Keep it under ${SURVEY_MAX_SEGMENTS} segments.` };
+    const failed = rows.find((row) => row.error);
+    if (failed) return { error: failed.error };
+    rows.forEach((row, index) => {
+      if (row.turn !== null && row.turn !== undefined) return;
+      if (index === rows.length - 1) row.turn = 0;
+      else row.error = `Line ${row.line}: add a turn such as R90 or -90.`;
+    });
+    const turnError = rows.find((row) => row.error);
+    if (turnError) return { error: turnError.error };
+    return { segments: rows.map(({ length, turn }) => ({ length, turn })) };
+  };
+
+  const parseSurveyText = (raw) => {
+    const text = String(raw || '');
+    if (!text.trim()) return { error: 'Enter at least one distance.' };
+    if (text.includes(',')) return parseSurveyCsv(text);
+
+    const tokens = text
+      .split(/\r?\n/)
+      .map(stripSurveyComment)
+      .filter(Boolean)
+      .join(' ')
+      .split(/[\s;]+/)
+      .filter(Boolean);
+    if (!tokens.length) return { error: 'Enter at least one distance.' };
+    if (tokens.length > SURVEY_MAX_SEGMENTS * 2) return { error: `Keep it under ${SURVEY_MAX_SEGMENTS} segments.` };
+
+    if (tokens.every((token) => parseSurveyLength(token) !== null)) {
+      const segments = tokens.map((token, index) => ({
+        length: parseSurveyLength(token),
+        turn: index === tokens.length - 1 ? 0 : 90
+      }));
+      if (segments.some((segment) => !(segment.length > 0))) {
+        return { error: 'Distances must be greater than zero.' };
+      }
+      return { segments, warning: 'Lengths only — assuming a 90° right turn between sides.' };
+    }
+
+    const segments = [];
+    let index = 0;
+    while (index < tokens.length) {
+      const lengthToken = tokens[index];
+      const length = parseSurveyLength(lengthToken);
+      if (length === null) return { error: `“${lengthToken}” is not a distance. Example: 12 R90.` };
+      if (!(length > 0)) return { error: 'Distances must be greater than zero.' };
+      if (length > 10000) return { error: 'Keep distances under 10,000 m.' };
+      index += 1;
+
+      let turn = 0;
+      if (index < tokens.length) {
+        const turnToken = tokens[index];
+        const parsedTurn = parseSurveyTurn(turnToken);
+        if (parsedTurn === null) {
+          return { error: `After ${lengthToken} m, expected a turn like R90 or L45, not “${turnToken}”.` };
+        }
+        if (Math.abs(parsedTurn) > 3600) return { error: 'Turns must stay under 3,600°.' };
+        turn = parsedTurn;
+        index += 1;
+      }
+      segments.push({ length, turn });
+      if (segments.length > SURVEY_MAX_SEGMENTS) return { error: `Keep it under ${SURVEY_MAX_SEGMENTS} segments.` };
+    }
+    return { segments };
+  };
+
+  const buildSurvey = (segments, options) => {
+    const grid = Math.max(0.05, Number(options.gridSize) || 1);
+    const snap = Boolean(options.snap);
+    let heading = (Number(options.heading) || 0) * DEG;
+    let x = Number(options.startX) || 0;
+    let y = Number(options.startY) || 0;
+    const points = [[x, y]];
+    let perimeter = 0;
+
+    segments.forEach((segment) => {
+      const length = snap ? Math.max(grid, roundTo(segment.length, grid)) : segment.length;
+      x += Math.cos(heading) * length;
+      y += Math.sin(heading) * length;
+      perimeter += length;
+      points.push([Number(x.toFixed(4)), Number(y.toFixed(4))]);
+      heading += segment.turn * DEG;
+    });
+
+    const start = points[0];
+    const end = points[points.length - 1];
+    const gap = Math.hypot(end[0] - start[0], end[1] - start[1]);
+    let area = 0;
+    if (options.closeLoop && points.length > 2) {
+      for (let i = 0; i < points.length; i += 1) {
+        const a = points[i];
+        const b = points[(i + 1) % points.length];
+        area += a[0] * b[1] - b[0] * a[1];
+      }
+      area = Math.abs(area) / 2;
+    }
+
+    return {
+      points,
+      perimeter,
+      gap,
+      area,
+      closed: Boolean(options.closeLoop),
+      total: perimeter + (options.closeLoop && gap > 0.0001 ? gap : 0)
+    };
+  };
+
+  const readSurveyForm = () => {
+    const numberField = (selector) => {
+      const value = Number($(selector).value);
+      return Number.isFinite(value) ? value : 0;
+    };
+    return {
+      closeLoop: Boolean($('#surveyCloseLoop').checked),
+      snap: Boolean($('#surveySnap').checked),
+      startX: numberField('#surveyStartX'),
+      startY: numberField('#surveyStartY'),
+      heading: numberField('#surveyHeading'),
+      gridSize: state.doc?.gridSize || 1
+    };
+  };
+
+  const setSurveyStats = (result, count) => {
+    $('#surveyPerimeter').textContent = result ? result.total.toFixed(1) : '—';
+    $('#surveyArea').textContent = result && result.closed ? result.area.toFixed(1) : '—';
+    $('#surveyCorners').textContent = result ? String(count) : '—';
+    const gap = $('#surveyGap');
+    if (!result) {
+      gap.textContent = '';
+      return;
+    }
+    if (result.closed) {
+      gap.textContent = result.gap > 0.05
+        ? `Closes with a ${result.gap.toFixed(1)} m connector`
+        : 'Loop closes cleanly';
+    } else {
+      gap.textContent = result.gap > 0.05
+        ? `Open path · ${result.gap.toFixed(1)} m back to start`
+        : 'Open path';
+    }
+  };
+
+  const renderSurveyPreview = (result, form) => {
+    const svg = $('#surveyPreviewSvg');
+    const points = result.points;
+    const xs = points.map((point) => point[0]);
+    const ys = points.map((point) => point[1]);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const width = Math.max(0.001, Math.max(...xs) - minX);
+    const height = Math.max(0.001, Math.max(...ys) - minY);
+    const pad = Math.max(0.75, Math.max(width, height) * 0.14);
+    const vbW = width + pad * 2;
+    const vbH = height + pad * 2;
+    const dx = minX - pad;
+    const dy = minY - pad;
+    const start = points[0];
+    const end = points[points.length - 1];
+    const dot = Math.max(vbW, vbH) / 95;
+    const pointString = points
+      .map((point) => `${Number(point[0].toFixed(3))},${Number(point[1].toFixed(3))}`)
+      .join(' ');
+
+    svg.setAttribute('viewBox', `${dx} ${dy} ${vbW} ${vbH}`);
+    let markup = `<polyline class="survey-path" points="${pointString}" fill="none" vector-effect="non-scaling-stroke"/>`;
+    if (!form.closeLoop && result.gap > 0.01) {
+      markup += `<line class="survey-gap-line" x1="${end[0]}" y1="${end[1]}" x2="${start[0]}" y2="${start[1]}" vector-effect="non-scaling-stroke"/>`;
+    }
+    markup += `<circle class="survey-origin" cx="${start[0]}" cy="${start[1]}" r="${dot}"/>`;
+    markup += `<circle class="survey-end" cx="${end[0]}" cy="${end[1]}" r="${dot}"/>`;
+    svg.innerHTML = markup;
+  };
+
+  const updateSurveyPreview = () => {
+    const svg = $('#surveyPreviewSvg');
+    const message = $('#surveyMessage');
+    const insert = $('#surveyInsert');
+    if (!svg || !message || !insert) return null;
+
+    const form = readSurveyForm();
+    message.textContent = '';
+    message.className = 'survey-message';
+    const parsed = parseSurveyText($('#surveyInput').value);
+    if (parsed.error) {
+      svg.innerHTML = '';
+      svg.removeAttribute('viewBox');
+      message.textContent = parsed.error;
+      message.classList.add('is-error');
+      insert.disabled = true;
+      setSurveyStats(null, 0);
+      return null;
+    }
+
+    if (parsed.warning) {
+      message.textContent = parsed.warning;
+      message.classList.add('is-warn');
+    }
+    const result = buildSurvey(parsed.segments, form);
+    insert.disabled = false;
+    renderSurveyPreview(result, form);
+    setSurveyStats(result, parsed.segments.length);
+    return { parsed, result, form };
+  };
+
+  const openSurvey = (prefill = '') => {
+    const dialog = $('#surveyDialog');
+    if (!dialog) return;
+    closeDrawers();
+    hideTouchActions();
+    if (prefill) $('#surveyInput').value = prefill;
+    updateSurveyPreview();
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.setAttribute('open', '');
+    setTimeout(() => $('#surveyInput').focus(), 30);
+  };
+
+  const insertSurveyOutline = () => {
+    const view = updateSurveyPreview();
+    if (!view) return false;
+    if (!ensureLayerUsable()) return false;
+    const { parsed, result, form } = view;
+    const points = result.points.map((point) => [point[0], point[1]]);
+    if (form.closeLoop && result.gap > 0.0001) points.push([...points[0]]);
+
+    const entity = applyNewStyle({
+      type: 'polyline',
+      points,
+      closed: form.closeLoop
+    });
+    const surveyNumber = state.doc.entities.filter((e) => /^Surveyed outline/i.test(e.name || '')).length + 1;
+    entity.name = `Surveyed outline ${surveyNumber}`;
+    state.doc.entities.push(entity);
+    setSelection([entity.id], false);
+    commit('Insert survey outline');
+    renderLayers();
+    updateInspector();
+    updateStatus();
+    fitToContent();
+    toast('Survey outline inserted', `${parsed.segments.length} segments · ${result.total.toFixed(1)} m perimeter.`);
+    return true;
+  };
+
   const COMMANDS = [
     { command: 'SELECT', hint: 'Selection tool', run: () => setTool('select') },
     { command: 'PAN', hint: 'Pan the drawing sheet', run: () => setTool('pan') },
@@ -3736,6 +4046,7 @@
     { command: 'TEXT', hint: 'Place a map annotation', run: () => setTool('text') },
     { command: 'MARKER', hint: 'Stamp a trail prop', run: (args) => { if (!chooseMarker(args)) { setTool('marker'); if (args) toast('Marker not found', `“${args}” is not a known prop.`, 'warn'); } } },
     { command: 'MEASURE', hint: 'Dimension between two points', run: () => setTool('measure') },
+    { command: 'SURVEY', hint: 'Build an outline from distances and turns', run: (args) => openSurvey(args) },
     { command: 'PRESET', hint: 'Insert a structure preset', run: (args) => {
       const preset = findPreset(args);
       if (preset) insertPreset(preset);
@@ -5071,6 +5382,29 @@
     textDialog.addEventListener('close', () => {
       state.textPoint = null;
       $('#textInput').value = '';
+      canvas.focus();
+    });
+
+    const surveyDialog = $('#surveyDialog');
+    $('#surveyBtn').addEventListener('click', () => openSurvey());
+    surveyDialog.addEventListener('input', updateSurveyPreview);
+    surveyDialog.addEventListener('change', updateSurveyPreview);
+    $('#surveyForm').addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (event.submitter?.id !== 'surveyInsert') return;
+      if (insertSurveyOutline()) surveyDialog.close();
+    });
+    $('#surveyClose').addEventListener('click', () => surveyDialog.close());
+    $('#surveyCancel').addEventListener('click', () => surveyDialog.close());
+    $('#surveyInput').addEventListener('keydown', (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+        event.preventDefault();
+        if (insertSurveyOutline()) surveyDialog.close();
+      }
+    });
+    surveyDialog.addEventListener('close', () => {
+      $('#surveyMessage').textContent = '';
+      $('#surveyMessage').className = 'survey-message';
       canvas.focus();
     });
 

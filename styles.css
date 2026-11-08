@@ -1909,6 +1909,105 @@ dialog::backdrop { background: rgba(2, 5, 6, .7); backdrop-filter: blur(3px); }
 .help-tips kbd { display: inline-block; padding: 1px 4px; border: 1px solid #2d3f42; background: #0a1012; color: #95a09c; font-family: var(--font-mono); font-size: 7px; }
 .help-footer { display: flex; justify-content: space-between; padding: 12px 25px; color: #3f504e; font-family: var(--font-mono); font-size: 6.5px; letter-spacing: 1px; }
 
+/* ── Traverse survey ─────────────────────────────────── */
+
+.survey-open-btn { margin-top: 12px; border-style: solid; color: #8fa8a3; }
+
+.survey-modal { width: min(800px, calc(100vw - 32px)); max-height: calc(100vh - 32px); }
+.survey-modal form { display: flex; flex-direction: column; max-height: calc(100vh - 34px); }
+
+.survey-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid #223134;
+}
+
+.survey-head h2 { margin: 7px 0 4px; }
+.survey-head p { margin: 0; }
+
+.survey-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+  gap: 18px;
+  padding: 18px 24px;
+  overflow-y: auto;
+}
+
+.survey-inputs { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+.survey-modal textarea {
+  width: 100%;
+  min-height: 138px;
+  padding: 10px 11px;
+  border: 1px solid #2c4043;
+  outline: 0;
+  color: var(--text);
+  background: #090f11;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.75;
+  resize: vertical;
+}
+
+.survey-modal textarea:focus { border-color: #527376; }
+
+.survey-help { margin: 0; color: #5f6f6c; font-size: 8.5px; line-height: 1.6; }
+.survey-help code { padding: 1px 4px; border: 1px solid #25373a; color: #9fb6b1; background: #111a1d; font-family: var(--font-mono); font-size: 7.5px; }
+
+.survey-toggles { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.survey-toggles label { display: flex; align-items: center; gap: 6px; color: #7d8b88; font-family: var(--font-mono); font-size: 7.5px; letter-spacing: .8px; cursor: pointer; }
+.survey-toggles input { accent-color: var(--accent); }
+
+.survey-origin { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+
+.survey-mini { display: flex; flex-direction: column; gap: 4px; color: #586865; font-family: var(--font-mono); font-size: 7px; letter-spacing: 1px; }
+.survey-mini input { width: 100%; height: 30px; padding: 0 8px; border: 1px solid #2c4043; outline: 0; color: var(--text); background: #090f11; font-family: var(--font-mono); font-size: 10px; }
+.survey-mini input:focus { border-color: #527376; }
+
+.survey-message { min-height: 15px; color: #7d8b88; font-size: 8.5px; line-height: 1.5; }
+.survey-message.is-error { color: #e6a79a; }
+.survey-message.is-warn { color: #d8ad7e; }
+
+.survey-preview { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+.survey-preview svg {
+  width: 100%;
+  height: 206px;
+  display: block;
+  border: 1px solid #26383b;
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(126, 216, 207, .05), transparent 64%),
+    #080e10;
+}
+
+.survey-path { stroke: #7ed8cf; stroke-width: 1.6px; stroke-linejoin: round; stroke-linecap: round; }
+.survey-gap-line { stroke: #cd7647; stroke-width: 1.2px; stroke-dasharray: 4 4; }
+.survey-origin { fill: #0c1315; stroke: #cd7647; stroke-width: 1.5px; }
+.survey-end { fill: #7ed8cf; stroke: #0c1315; stroke-width: 1px; }
+
+.survey-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.survey-stats > div { padding: 8px 9px; border: 1px solid #1e2c2f; background: #0a1113; }
+.survey-stats b { display: block; color: var(--text-strong); font-family: var(--font-display); font-size: 16px; font-weight: 600; line-height: 1.1; }
+.survey-stats span { display: block; margin-top: 4px; color: #5f6f6c; font-family: var(--font-mono); font-size: 6.5px; letter-spacing: 1px; }
+
+.survey-gap { min-height: 13px; color: #7b8a87; font-family: var(--font-mono); font-size: 7.5px; }
+
+.survey-actions { margin-top: 0; padding: 14px 24px 18px; border-top: 1px solid #1e2c2f; }
+
+.modal-btn:disabled { opacity: .42; cursor: not-allowed; }
+
+@media (max-width: 720px) {
+  .survey-modal { width: calc(100vw - 18px); max-height: calc(100vh - 18px); }
+  .survey-modal form { max-height: calc(100vh - 20px); }
+  .survey-head { padding: 17px 17px 13px; }
+  .survey-body { grid-template-columns: 1fr; padding: 15px 17px; }
+  .survey-preview svg { height: 158px; }
+  .survey-actions { padding: 12px 17px 15px; }
+}
+
 /* ── Toasts ───────────────────────────────────────────── */
 
 .toast-stack {

@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=1.3.0">
+  <link rel="stylesheet" href="styles.css?v=1.4.0">
 </head>
 <body>
   <svg class="svg-sprite" aria-hidden="true">
@@ -168,6 +168,7 @@
             <button class="snap-pill is-on" id="geomSnapBtn" data-tip="Snap to points and edges"><svg><use href="#i-magnet"></use></svg><span>POINTS</span></button>
             <button class="snap-pill" id="orthoBtn" data-tip="Lock drawing to 0° / 90°"><svg><use href="#i-ortho"></use></svg><span>ORTHO</span></button>
           </div>
+          <button class="wide-btn survey-open-btn" id="surveyBtn"><svg><use href="#i-ruler"></use></svg>WALK AN OUTLINE</button>
         </section>
 
         <section class="library">
@@ -368,13 +369,63 @@
         <p><strong>Exports.</strong> Blueprint PNG includes a title block. SVG is clean vector line work. JSON preserves the full editable document.</p>
       </section>
     </div>
-    <div class="help-footer"><span>FOGFORGE / TRIAL GROUNDS CARTOGRAPHER</span><span>v1.2</span></div>
+    <div class="help-footer"><span>FOGFORGE / TRIAL GROUNDS CARTOGRAPHER</span><span>v1.4.0</span></div>
+  </dialog>
+
+  <dialog class="modal survey-modal" id="surveyDialog" aria-labelledby="surveyTitle">
+    <form method="dialog" id="surveyForm">
+      <div class="survey-head">
+        <div>
+          <div class="modal-kicker">TRAVERSE SURVEY</div>
+          <h2 id="surveyTitle">Build an outline from a walk</h2>
+          <p>Enter each straight run and the turn at its end. Distances are in metres.</p>
+        </div>
+        <button type="button" class="icon-btn" id="surveyClose" aria-label="Close survey"><svg><use href="#i-x"></use></svg></button>
+      </div>
+      <div class="survey-body">
+        <div class="survey-inputs">
+          <label class="field-label" for="surveyInput">SEGMENTS</label>
+          <textarea id="surveyInput" rows="7" spellcheck="false">12 R90
+8 R90
+12 R90
+8</textarea>
+          <p class="survey-help">
+            One segment per line, or all on one line. <code>12 R90</code> walks 12 m then turns right 90°;
+            <code>L45</code> turns left. A bare list such as <code>12 8 6 14</code> assumes 90° right turns.
+            CSV: <code>12, 90</code>.
+          </p>
+          <div class="survey-toggles">
+            <label><input type="checkbox" id="surveyCloseLoop" checked> CLOSE LOOP</label>
+            <label><input type="checkbox" id="surveySnap"> SNAP LENGTHS TO GRID</label>
+          </div>
+          <div class="survey-origin">
+            <label class="survey-mini"><span>START X</span><input id="surveyStartX" type="number" value="0" step="0.5"></label>
+            <label class="survey-mini"><span>START Y</span><input id="surveyStartY" type="number" value="0" step="0.5"></label>
+            <label class="survey-mini"><span>HEADING °</span><input id="surveyHeading" type="number" value="0" step="1"></label>
+          </div>
+          <div class="survey-message" id="surveyMessage" role="status"></div>
+        </div>
+        <div class="survey-preview">
+          <svg id="surveyPreviewSvg" preserveAspectRatio="xMidYMid meet" aria-label="Outline preview"></svg>
+          <div class="survey-stats">
+            <div><b id="surveyPerimeter">—</b><span>PERIMETER m</span></div>
+            <div><b id="surveyArea">—</b><span>AREA m²</span></div>
+            <div><b id="surveyCorners">—</b><span>SEGMENTS</span></div>
+          </div>
+          <div class="survey-gap" id="surveyGap"></div>
+        </div>
+      </div>
+      <div class="modal-actions survey-actions">
+        <button type="button" class="modal-btn ghost" id="surveyCancel">CANCEL</button>
+        <button type="submit" class="modal-btn primary" id="surveyInsert" value="default">INSERT OUTLINE</button>
+      </div>
+    </form>
   </dialog>
 
   <div class="toast-stack" id="toastStack"></div>
   <input type="file" id="fileMapInput" accept=".json,.dbdmap.json,application/json" hidden>
   <input type="file" id="fileImageInput" accept="image/*" hidden>
 
-  <script src="app.js?v=1.3.0"></script>
+  <script src="app.js?v=1.4.0"></script>
 </body>
 </html>

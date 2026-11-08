@@ -85,6 +85,25 @@ The **TRIAL PROPS** palette stamps individual markers: pallet, vault, generator,
 totem, chest, hatch, exit gate, basement, stairs, and locker. Marker type, size, colour,
 and rotation stay editable in the inspector.
 
+## Walk a survey outline
+
+Use **WALK AN OUTLINE** in the tool panel (or the `SURVEY` command) to build a closed
+perimeter from a walk. Enter each straight run and the turn at its end; distances are in
+metres and turns are clockwise unless marked left.
+
+```text
+12 R90
+8 R90
+12 R90
+8
+```
+
+`R90` turns right, `L45` turns left, and a bare list such as `12 8 6 14` assumes a 90°
+right turn between sides. Spreadsheet-style rows work too: `12, 90` or `8, -90`. Turn on
+**Snap lengths to grid** to round each run to the current grid size, adjust the start
+point and heading, then **INSERT OUTLINE**. The preview reports perimeter, area, and any
+gap back to the start.
+
 ## Precision and navigation
 
 - **Grid snapping** — `Shift+G`
@@ -135,6 +154,7 @@ RECT            WALL            PRESET SHACK
 GRID OFF        SNAP ON         ORTHO ON
 ZOOM FIT        EXPORT PNG      EXPORT SVG
 GROUP           UNGROUP         SELECT ALL
+SURVEY 12 R90 8 R90 12 R90 8
 ```
 
 Start typing to see suggestions; the up/down arrow keys move through them, `Enter`
