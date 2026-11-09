@@ -116,6 +116,10 @@ resulting trace, and rewrites it as distances and turns. Logs without a usable c
 curve are refitted against the current default before import. The preview then closes the
 loop and reports the remaining gap, so you can check the walk before inserting.
 
+Logs captured with bumper turns (`--bumpers`) store the turn in the button column instead.
+The importer then ignores the right stick and rebuilds each corner from the bumper presses,
+so every corner is exactly the recorded turn size.
+
 Reset the start point and heading afterwards if the outline should line up with existing
 geometry.
 

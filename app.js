@@ -3883,6 +3883,7 @@
     const lyCol = column('ly');
     const rxCol = column('rx');
     const ryCol = column('ry');
+    const buttonsCol = column('buttons');
     if ([tCol, lxCol, lyCol, rxCol, ryCol].some((index) => index < 0)) {
       return { error: 'Expected a pad log with t_ms, lx, ly, rx, ry columns.' };
     }
@@ -3894,7 +3895,8 @@
       const ly = Number(cells[lyCol]);
       const rx = Number(cells[rxCol]);
       const ry = Number(cells[ryCol]);
-      if ([t, lx, ly, rx, ry].every(Number.isFinite)) rows.push({ t, lx, ly, rx, ry });
+      const buttons = buttonsCol >= 0 ? Number(cells[buttonsCol]) || 0 : 0;
+      if ([t, lx, ly, rx, ry].every(Number.isFinite)) rows.push({ t, lx, ly, rx, ry, buttons });
     });
     if (!rows.length) return { error: 'No usable samples in that log.' };
     return { rows };
@@ -3931,6 +3933,15 @@
     const power = Number.isFinite(headerPower) ? headerPower : PADLOG_MODEL.power;
     const headerZone = Number(meta.deadzone);
     const zone = Number.isFinite(headerZone) ? headerZone : PADLOG_MODEL.deadzone;
+    const bumpers = String(meta.turn_mode || '').toLowerCase() === 'bumpers';
+    const strafe = String(meta.strafe || 'on').toLowerCase() !== 'off';
+    const turnDegrees = Number(meta.turn_degrees) || 90;
+    const buttonList = (text, fallback) => String(text ?? fallback)
+      .split(',')
+      .map((value) => Number(value.trim()))
+      .filter((value) => Number.isInteger(value) && value >= 0 && value < 32);
+    const leftButtons = buttonList(meta.turn_left, '4');
+    const rightButtons = buttonList(meta.turn_right, '5');
     const origin = bias || padlogBias(rows, meta);
     const points = collect ? [[0, 0]] : null;
     let heading = 0;
@@ -3938,23 +3949,39 @@
     let y = 0;
     let distance = 0;
     let previous = rows[0].t;
+    let held = 0;
     rows.forEach((row) => {
       const dt = row.t - previous;
       previous = row.t;
       if (!(dt > 0) || dt > 0.2) return;
-      const turn = padlogDeadzone(row.rx - origin.rx, zone);
-      if (turn) heading += yaw * DEG * Math.sign(turn) * Math.abs(turn) ** power * dt;
+      if (bumpers) {
+        const buttons = row.buttons || 0;
+        let direction = 0;
+        leftButtons.forEach((index) => {
+          if (buttons & (1 << index) && !(held & (1 << index))) direction -= 1;
+        });
+        rightButtons.forEach((index) => {
+          if (buttons & (1 << index) && !(held & (1 << index))) direction += 1;
+        });
+        held = buttons;
+        if (direction) heading += direction * turnDegrees * DEG;
+      } else {
+        const turn = padlogDeadzone(row.rx - origin.rx, zone);
+        if (turn) heading += yaw * DEG * Math.sign(turn) * Math.abs(turn) ** power * dt;
+      }
       const lx = row.lx - origin.lx;
       const ly = row.ly - origin.ly;
-      if (Math.hypot(lx, ly) >= PADLOG_MOVE_ZONE) {
-        const direction = heading + Math.atan2(lx, ly);
+      if (strafe ? Math.hypot(lx, ly) : Math.abs(ly) >= PADLOG_MOVE_ZONE) {
+        const direction = strafe
+          ? heading + Math.atan2(lx, ly)
+          : (heading + (ly >= 0 ? 0 : Math.PI));
         x += Math.cos(direction) * speed * dt;
         y += Math.sin(direction) * speed * dt;
         distance += speed * dt;
       }
       if (points) points.push([x, y]);
     });
-    return { points, speed, power, zone, distance, x, y };
+    return { points, speed, power, zone, distance, x, y, bumpers, turnDegrees };
   };
 
   const padlogGap = (points) => (points && points.length > 1
@@ -4083,9 +4110,10 @@
       const headerZone = Number(meta.deadzone);
       // Logs captured before the camera curve was fixed carry a stale linear
       // model; refit those against the current curve instead of trusting them.
-      const stale = !Number.isFinite(headerYaw)
+      const bumpers = String(meta.turn_mode || '').toLowerCase() === 'bumpers';
+      const stale = !bumpers && (!Number.isFinite(headerYaw)
         || !Number.isFinite(headerPower)
-        || Math.abs(headerPower - PADLOG_MODEL.power) > 0.25;
+        || Math.abs(headerPower - PADLOG_MODEL.power) > 0.25);
       const model = stale
         ? { ...meta,
             deadzone: String(PADLOG_MODEL.deadzone),
@@ -4099,6 +4127,8 @@
       if (stale) {
         fitted = fitPadlogYaw(parsed.rows, model, bias);
         yaw = fitted.yaw;
+      } else if (bumpers) {
+        yaw = 0;
       }
       const run = padlogIntegrate(parsed.rows, model, yaw, true, bias);
       const shape = padlogSegments(run.points);
@@ -4121,6 +4151,7 @@
         `${shape.segments.length} sides`
       ];
       parts.push(fitted ? `fitted yaw ${Math.round(yaw)}°/s` : `yaw ${Math.round(yaw)}°/s`);
+      if (run.bumpers) parts[parts.length - 1] = `bumper turns ±${run.turnDegrees}°`;
       if (gap > 5) parts.push(`loop gap ${gap.toFixed(1)} m`);
       setSurveyImportMessage(parts.join(' · '), gap > 8);
     };
