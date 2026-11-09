@@ -1,9 +1,9 @@
-const CACHE = 'fogforge-v1.4.0';
+const CACHE = 'fogforge-v1.5.0';
 const ASSETS = [
   './',
   './index.html',
-  './styles.css?v=1.4.0',
-  './app.js?v=1.4.0',
+  './styles.css?v=1.5.0',
+  './app.js?v=1.5.0',
   './manifest.webmanifest',
   './icon.svg',
   './icon-192.png',

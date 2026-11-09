@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=1.4.0">
+  <link rel="stylesheet" href="styles.css?v=1.5.0">
 </head>
 <body>
   <svg class="svg-sprite" aria-hidden="true">
@@ -369,7 +369,7 @@
         <p><strong>Exports.</strong> Blueprint PNG includes a title block. SVG is clean vector line work. JSON preserves the full editable document.</p>
       </section>
     </div>
-    <div class="help-footer"><span>FOGFORGE / TRIAL GROUNDS CARTOGRAPHER</span><span>v1.4.0</span></div>
+    <div class="help-footer"><span>FOGFORGE / TRIAL GROUNDS CARTOGRAPHER</span><span>v1.5.0</span></div>
   </dialog>
 
   <dialog class="modal survey-modal" id="surveyDialog" aria-labelledby="surveyTitle">
@@ -416,6 +416,7 @@
         </div>
       </div>
       <div class="modal-actions survey-actions">
+        <button type="button" class="modal-btn ghost survey-import" id="surveyImport"><svg><use href="#i-open"></use></svg>IMPORT PAD LOG</button>
         <button type="button" class="modal-btn ghost" id="surveyCancel">CANCEL</button>
         <button type="submit" class="modal-btn primary" id="surveyInsert" value="default">INSERT OUTLINE</button>
       </div>
@@ -425,7 +426,8 @@
   <div class="toast-stack" id="toastStack"></div>
   <input type="file" id="fileMapInput" accept=".json,.dbdmap.json,application/json" hidden>
   <input type="file" id="fileImageInput" accept="image/*" hidden>
+  <input type="file" id="filePadlogInput" accept=".csv,text/csv" hidden>
 
-  <script src="app.js?v=1.4.0"></script>
+  <script src="app.js?v=1.5.0"></script>
 </body>
 </html>

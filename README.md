@@ -104,6 +104,21 @@ right turn between sides. Spreadsheet-style rows work too: `12, 90` or `8, -90`.
 point and heading, then **INSERT OUTLINE**. The preview reports perimeter, area, and any
 gap back to the start.
 
+### Import a walked pad log
+
+**IMPORT PAD LOG** in the survey dialog takes a CSV captured by `padlog/overlay.py` or
+`padlog/padlog.py` and turns the recorded sticks into segments, so you can walk the
+perimeter in game and skip the typing.
+
+The importer dead-reckons the left stick at the logged speed, integrates the right stick
+through the camera curve (`rate = yaw · c^power`, deadzone-corrected), simplifies the
+resulting trace, and rewrites it as distances and turns. Logs without a usable camera
+curve are refitted against the current default before import. The preview then closes the
+loop and reports the remaining gap, so you can check the walk before inserting.
+
+Reset the start point and heading afterwards if the outline should line up with existing
+geometry.
+
 ## Precision and navigation
 
 - **Grid snapping** — `Shift+G`

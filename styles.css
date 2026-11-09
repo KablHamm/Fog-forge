@@ -1892,6 +1892,9 @@ dialog::backdrop { background: rgba(2, 5, 6, .7); backdrop-filter: blur(3px); }
 .modal-btn.primary { color: #e5d0be; border-color: #5f3d2a; background: rgba(205, 118, 71, .1); }
 .modal-btn:hover { color: var(--text-strong); border-color: #486064; }
 
+.survey-import { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; }
+.survey-import svg { width: 12px; height: 12px; }
+
 .help-modal { width: min(930px, calc(100vw - 50px)); max-height: calc(100vh - 50px); }
 .help-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 23px 25px 18px; border-bottom: 1px solid #223134; }
 .help-head h2 { margin-bottom: 0; }

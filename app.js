@@ -3856,6 +3856,278 @@
     return { segments };
   };
 
+  // ── Pad log import ────────────────────────────────────────────────────────
+
+  const PADLOG_MOVE_ZONE = 0.2;
+  const PADLOG_SIMPLIFY = 0.6;
+  const PADLOG_MODEL = { deadzone: 0.27, power: 2.07 };
+
+  const padlogMeta = (raw) => {
+    const meta = {};
+    String(raw).split(/\r?\n/).forEach((line) => {
+      const match = line.match(/^#\s*([^=]+?)\s*=\s*(.*)$/);
+      if (match) meta[match[1].trim()] = match[2].trim();
+    });
+    return meta;
+  };
+
+  const padlogRows = (raw) => {
+    const lines = String(raw)
+      .split(/\r?\n/)
+      .filter((line) => line.trim() && !line.trim().startsWith('#'));
+    if (!lines.length) return { error: 'That log has no samples.' };
+    const header = lines[0].split(',').map((cell) => cell.trim().toLowerCase());
+    const column = (name) => header.indexOf(name);
+    const tCol = column('t_ms');
+    const lxCol = column('lx');
+    const lyCol = column('ly');
+    const rxCol = column('rx');
+    const ryCol = column('ry');
+    if ([tCol, lxCol, lyCol, rxCol, ryCol].some((index) => index < 0)) {
+      return { error: 'Expected a pad log with t_ms, lx, ly, rx, ry columns.' };
+    }
+    const rows = [];
+    lines.slice(1).forEach((line) => {
+      const cells = line.split(',');
+      const t = Number(cells[tCol]) / 1000;
+      const lx = Number(cells[lxCol]);
+      const ly = Number(cells[lyCol]);
+      const rx = Number(cells[rxCol]);
+      const ry = Number(cells[ryCol]);
+      if ([t, lx, ly, rx, ry].every(Number.isFinite)) rows.push({ t, lx, ly, rx, ry });
+    });
+    if (!rows.length) return { error: 'No usable samples in that log.' };
+    return { rows };
+  };
+
+  const padlogDeadzone = (value, zone) => {
+    if (Math.abs(value) <= zone) return 0;
+    return Math.sign(value) * (Math.abs(value) - zone) / (1 - zone);
+  };
+
+  const padlogBias = (rows, meta) => {
+    const supplied = {};
+    ['lx', 'ly', 'rx', 'ry'].forEach((axis) => {
+      const value = Number(meta[`bias_${axis}`]);
+      supplied[axis] = Number.isFinite(value) ? value : null;
+    });
+    if (Object.values(supplied).every((value) => value !== null)) return supplied;
+    const idle = rows.filter((row) => Math.hypot(row.lx, row.ly) < 0.15);
+    const pool = idle.length >= 30 ? idle : rows;
+    const median = (values) => {
+      const sorted = [...values].sort((a, b) => a - b);
+      return sorted[Math.floor(sorted.length / 2)] || 0;
+    };
+    const result = {};
+    ['lx', 'ly', 'rx', 'ry'].forEach((axis) => {
+      result[axis] = supplied[axis] ?? median(pool.map((row) => row[axis]));
+    });
+    return result;
+  };
+
+  const padlogIntegrate = (rows, meta, yaw, collect = true, bias = null) => {
+    const speed = Number(meta.speed_mps) || 4.6;
+    const headerPower = Number(meta.yaw_power);
+    const power = Number.isFinite(headerPower) ? headerPower : PADLOG_MODEL.power;
+    const headerZone = Number(meta.deadzone);
+    const zone = Number.isFinite(headerZone) ? headerZone : PADLOG_MODEL.deadzone;
+    const origin = bias || padlogBias(rows, meta);
+    const points = collect ? [[0, 0]] : null;
+    let heading = 0;
+    let x = 0;
+    let y = 0;
+    let distance = 0;
+    let previous = rows[0].t;
+    rows.forEach((row) => {
+      const dt = row.t - previous;
+      previous = row.t;
+      if (!(dt > 0) || dt > 0.2) return;
+      const turn = padlogDeadzone(row.rx - origin.rx, zone);
+      if (turn) heading += yaw * DEG * Math.sign(turn) * Math.abs(turn) ** power * dt;
+      const lx = row.lx - origin.lx;
+      const ly = row.ly - origin.ly;
+      if (Math.hypot(lx, ly) >= PADLOG_MOVE_ZONE) {
+        const direction = heading + Math.atan2(lx, ly);
+        x += Math.cos(direction) * speed * dt;
+        y += Math.sin(direction) * speed * dt;
+        distance += speed * dt;
+      }
+      if (points) points.push([x, y]);
+    });
+    return { points, speed, power, zone, distance, x, y };
+  };
+
+  const padlogGap = (points) => (points && points.length > 1
+    ? Math.hypot(points[points.length - 1][0] - points[0][0],
+                 points[points.length - 1][1] - points[0][1])
+    : 0);
+
+  const fitPadlogYaw = (rows, meta, bias) => {
+    let best = { yaw: 600, gap: Infinity };
+    for (let yaw = 100; yaw <= 1200; yaw += 10) {
+      const run = padlogIntegrate(rows, meta, yaw, false, bias);
+      const gap = Math.hypot(run.x, run.y);
+      if (gap < best.gap) best = { yaw, gap };
+    }
+    const centre = best.yaw;
+    for (let yaw = Math.max(50, centre - 10); yaw <= centre + 10; yaw += 0.5) {
+      const run = padlogIntegrate(rows, meta, yaw, false, bias);
+      const gap = Math.hypot(run.x, run.y);
+      if (gap < best.gap) best = { yaw, gap };
+    }
+    return best;
+  };
+
+  const simplifyPadlog = (points, tolerance) => {
+    if (points.length <= 2) return points.map((point) => [point[0], point[1]]);
+    const keep = new Array(points.length).fill(false);
+    keep[0] = true;
+    keep[points.length - 1] = true;
+    const stack = [[0, points.length - 1]];
+    while (stack.length) {
+      const [first, last] = stack.pop();
+      const ax = points[first][0];
+      const ay = points[first][1];
+      const bx = points[last][0];
+      const by = points[last][1];
+      const dx = bx - ax;
+      const dy = by - ay;
+      const length = Math.hypot(dx, dy);
+      let furthest = -1;
+      let distance = 0;
+      for (let index = first + 1; index < last; index += 1) {
+        const px = points[index][0];
+        const py = points[index][1];
+        const d = length === 0
+          ? Math.hypot(px - ax, py - ay)
+          : Math.abs(dx * (ay - py) - (ax - px) * dy) / length;
+        if (d > distance) {
+          distance = d;
+          furthest = index;
+        }
+      }
+      if (distance > tolerance && furthest > 0) {
+        keep[furthest] = true;
+        stack.push([first, furthest], [furthest, last]);
+      }
+    }
+    return points.filter((point, index) => keep[index]);
+  };
+
+  const padlogSegments = (points) => {
+    const simplified = simplifyPadlog(points, PADLOG_SIMPLIFY);
+    if (simplified.length < 2) return null;
+    const firstBearing = Math.atan2(simplified[1][1] - simplified[0][1],
+                                    simplified[1][0] - simplified[0][0]);
+    const cos = Math.cos(-firstBearing);
+    const sin = Math.sin(-firstBearing);
+    const ox = simplified[0][0];
+    const oy = simplified[0][1];
+    const local = simplified.map(([x, y]) => [
+      (x - ox) * cos - (y - oy) * sin,
+      (x - ox) * sin + (y - oy) * cos
+    ]);
+    const segments = [];
+    const bearings = [];
+    for (let index = 0; index < local.length - 1; index += 1) {
+      const ax = local[index][0];
+      const ay = local[index][1];
+      const bx = local[index + 1][0];
+      const by = local[index + 1][1];
+      const length = Math.hypot(bx - ax, by - ay);
+      if (length < 0.05) continue;
+      segments.push({ length, turn: 0 });
+      bearings.push(Math.atan2(by - ay, bx - ax));
+    }
+    if (!segments.length) return null;
+    for (let index = 0; index < segments.length - 1; index += 1) {
+      let turn = (bearings[index + 1] - bearings[index]) / DEG;
+      while (turn > 180) turn -= 360;
+      while (turn < -180) turn += 360;
+      segments[index].turn = turn;
+    }
+    segments[segments.length - 1].turn = 0;
+    return { segments, points: local };
+  };
+
+  const surveyTextFromSegments = (segments) => segments
+    .map((segment, index) => {
+      const length = Math.max(0.1, segment.length).toFixed(2);
+      if (index === segments.length - 1) return length;
+      const direction = segment.turn >= 0 ? 'R' : 'L';
+      return `${length} ${direction}${Math.abs(segment.turn).toFixed(1)}`;
+    })
+    .join('\n');
+
+  const setSurveyImportMessage = (text, warn = false) => {
+    const message = $('#surveyMessage');
+    if (!message) return;
+    message.textContent = text;
+    message.className = `survey-message${warn ? ' is-warn' : ''}`;
+  };
+
+  const importPadlogFile = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const raw = String(reader.result || '');
+      const meta = padlogMeta(raw);
+      const parsed = padlogRows(raw);
+      if (parsed.error) {
+        setSurveyImportMessage(parsed.error, true);
+        return;
+      }
+      const bias = padlogBias(parsed.rows, meta);
+      const headerYaw = Number(meta.yaw_rate);
+      const headerPower = Number(meta.yaw_power);
+      const headerZone = Number(meta.deadzone);
+      // Logs captured before the camera curve was fixed carry a stale linear
+      // model; refit those against the current curve instead of trusting them.
+      const stale = !Number.isFinite(headerYaw)
+        || !Number.isFinite(headerPower)
+        || Math.abs(headerPower - PADLOG_MODEL.power) > 0.25;
+      const model = stale
+        ? { ...meta,
+            deadzone: String(PADLOG_MODEL.deadzone),
+            yaw_power: String(PADLOG_MODEL.power) }
+        : { ...meta,
+            deadzone: Number.isFinite(headerZone)
+              ? meta.deadzone
+              : String(PADLOG_MODEL.deadzone) };
+      let yaw = headerYaw;
+      let fitted = null;
+      if (stale) {
+        fitted = fitPadlogYaw(parsed.rows, model, bias);
+        yaw = fitted.yaw;
+      }
+      const run = padlogIntegrate(parsed.rows, model, yaw, true, bias);
+      const shape = padlogSegments(run.points);
+      if (!shape) {
+        setSurveyImportMessage('That log has no movement to import.', true);
+        return;
+      }
+      $('#surveyInput').value = surveyTextFromSegments(shape.segments);
+      $('#surveyHeading').value = '0';
+      $('#surveyStartX').value = '0';
+      $('#surveyStartY').value = '0';
+      $('#surveySnap').checked = false;
+      $('#surveyCloseLoop').checked = true;
+      const view = updateSurveyPreview();
+      if (!view) return;
+      const gap = padlogGap(run.points);
+      const parts = [
+        `Imported ${parsed.rows.length} samples`,
+        `${run.distance.toFixed(1)} m`,
+        `${shape.segments.length} sides`
+      ];
+      parts.push(fitted ? `fitted yaw ${Math.round(yaw)}°/s` : `yaw ${Math.round(yaw)}°/s`);
+      if (gap > 5) parts.push(`loop gap ${gap.toFixed(1)} m`);
+      setSurveyImportMessage(parts.join(' · '), gap > 8);
+    };
+    reader.onerror = () => setSurveyImportMessage('Could not read that file.', true);
+    reader.readAsText(file);
+  };
+
   const buildSurvey = (segments, options) => {
     const grid = Math.max(0.05, Number(options.gridSize) || 1);
     const snap = Boolean(options.snap);
@@ -5396,6 +5668,13 @@
     });
     $('#surveyClose').addEventListener('click', () => surveyDialog.close());
     $('#surveyCancel').addEventListener('click', () => surveyDialog.close());
+    $('#surveyImport').addEventListener('click', () => $('#filePadlogInput').click());
+    $('#filePadlogInput').addEventListener('change', (event) => {
+      const input = event.target;
+      const file = input.files && input.files[0];
+      input.value = '';
+      importPadlogFile(file);
+    });
     $('#surveyInput').addEventListener('keydown', (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
         event.preventDefault();
